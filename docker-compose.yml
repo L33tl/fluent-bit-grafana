@@ -1,0 +1,50 @@
+services:
+  fluentbit:
+    image: fluent/fluent-bit:2.2
+    container_name: fluentbit
+    depends_on:
+      - victoria
+    ports:
+      - "2020:2020"
+    volumes:
+      - ./logs:/logs:ro
+      - ./fluent-bit/fluent-bit.yml:/fluent-bit/etc/fluent-bit.conf:ro
+      - ./fluent-bit/parsers.yml:/fluent-bit/etc/parsers.conf:ro
+    command: ["fluent-bit", "-c", "/fluent-bit/etc/fluent-bit.conf"]
+
+  victoria:
+    image: victoriametrics/victoria-logs:v1.45.0
+    container_name: victoria
+    ports:
+      - "9428:9428"
+    volumes:
+      - victoria_data:/victoria_data
+
+  app:
+    build:
+      context: ./app
+    container_name: app
+    volumes:
+      - ./logs:/logs
+    working_dir: /app
+    command: ["python", "app.py"]
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin52
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=victoriametrics-logs-datasource
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    restart: unless-stopped
+
+volumes:
+  victoria_data:
+  grafana_data:

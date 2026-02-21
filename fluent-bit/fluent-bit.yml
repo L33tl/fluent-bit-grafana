@@ -1,0 +1,26 @@
+[SERVICE]
+    Flush        5
+    Log_Level    info
+    Parsers_File parsers.conf
+
+[INPUT]
+    Name        tail
+    Path        /logs/app.log
+    Parser      json
+    Tag         app
+
+[FILTER]
+    Name    modify
+    Match   *
+    Copy    event _msg
+
+[OUTPUT]
+    Name            http
+    Match           *
+    Host            victoria
+    Port            9428
+    URI             /insert/jsonline?_time_field=timestamp&_stream_fields=service
+    Format          json_lines
+    json_date_key   timestamp
+    json_date_format iso8601
+    Header          Content-Type application/stream+json
